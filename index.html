@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>ClinicFlow</title>
+<style>
+  :root{
+    --bg:#F7F8FA; --ink:#12181F; --muted:#6B7280; --faint:#9CA3AF;
+    --line:#F1F2F4; --border:#E5E7EB;
+    --faisal:#0E7C86; --faisal-tint:#E4F4F3;
+    --moh:#B5651D; --moh-tint:#FBEEE0;
+    --good:#2F9E5B; --bad:#C0433F;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+  .wrap{max-width:440px;margin:0 auto;padding-bottom:48px;}
+  .head{padding:24px 20px 12px;display:flex;align-items:center;justify-content:space-between;}
+  .head .kicker{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);}
+  .head .title{font-size:18px;font-weight:700;margin-top:2px;}
+  .save-tag{font-size:11px;color:var(--faint);display:flex;align-items:center;gap:4px;}
+  .tabs{margin:0 20px 16px;display:flex;background:#fff;border-radius:999px;padding:4px;border:1px solid var(--border);}
+  .tabs button{flex:1;padding:9px 0;border:none;border-radius:999px;background:transparent;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;}
+  .tabs button.active{background:var(--ink);color:#fff;}
+  .px{padding:0 20px;}
+  .stack{display:flex;flex-direction:column;gap:14px;}
+  .row2{display:flex;gap:8px;}
+  .clinic-btn{flex:1;padding:11px 0;border-radius:12px;font-size:14px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;}
+  .clinic-btn.active-faisal{background:var(--faisal-tint);border-color:var(--faisal);color:var(--faisal);}
+  .clinic-btn.active-moh{background:var(--moh-tint);border-color:var(--moh);color:var(--moh);}
+  input[type=date],input[type=text],input[type=number]{
+    width:100%;background:#fff;border:1px solid var(--border);border-radius:12px;
+    padding:9px 12px;font-size:14px;color:var(--ink);
+  }
+  input:focus{outline:2px solid #0E7C86;outline-offset:1px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden;}
+  .card-pad{padding:16px;}
+  .svc-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);}
+  .svc-row:first-child{border-top:none;}
+  .badge{width:34px;height:34px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+  .svc-name{font-size:14px;font-weight:500;}
+  .svc-price{font-size:11px;color:var(--faint);}
+  .stepper-btn{width:28px;height:28px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;line-height:1;}
+  .stepper-btn.plus{border:none;color:#fff;}
+  .qty{width:22px;text-align:center;font-size:14px;font-weight:600;}
+  .prices-toggle{width:100%;text-align:center;padding:8px 0;font-size:11px;color:var(--faint);background:#fafafa;border:none;border-top:1px solid var(--line);cursor:pointer;}
+  .price-edit{background:#fafafa;border-top:1px solid var(--line);padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+  .price-edit-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .price-edit-row span{font-size:12px;color:var(--muted);}
+  .price-edit-row input{width:96px;text-align:right;padding:6px 10px;}
+  .exp-add{display:flex;gap:8px;margin-bottom:10px;}
+  .exp-add input[type=text]{flex:1;min-width:0;background:#fafafa;}
+  .exp-add input[type=number]{width:88px;background:#fafafa;}
+  .exp-add button{width:36px;height:36px;flex-shrink:0;border:none;border-radius:10px;background:var(--moh);color:#fff;font-size:18px;cursor:pointer;}
+  .exp-item{display:flex;align-items:center;justify-content:space-between;font-size:13px;background:#fafafa;border-radius:10px;padding:7px 12px;margin-bottom:6px;}
+  .exp-item .desc{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .exp-item .right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .exp-item .del{background:none;border:none;color:#D1D5DB;cursor:pointer;font-size:14px;}
+  .ticket{background:#fff;border:1px solid var(--line);border-bottom:none;border-radius:16px 16px 0 0;padding:16px;font-size:13px;}
+  .ticket .hdr{text-align:center;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px;}
+  .ticket .line{display:flex;justify-content:space-between;color:var(--muted);padding:1px 0;}
+  .ticket .line.neg{color:var(--bad);}
+  .ticket hr{border:none;border-top:1px dashed #D1D5DB;margin:8px 0;}
+  .ticket .net{display:flex;justify-content:space-between;font-size:15px;font-weight:700;}
+  .tear{height:14px;background-image:linear-gradient(135deg,var(--bg) 8px,transparent 0),linear-gradient(45deg,var(--bg) 8px,transparent 0);background-size:16px 16px;background-position:left bottom;background-repeat:repeat-x;}
+  .seg{display:flex;background:#fff;border-radius:999px;padding:4px;border:1px solid var(--line);}
+  .seg button{flex:1;padding:8px 0;border:none;border-radius:999px;background:transparent;font-size:12px;font-weight:500;color:var(--faint);cursor:pointer;text-transform:capitalize;}
+  .seg button.active{background:var(--faisal-tint);color:var(--faisal);}
+  .seg-dark{display:flex;background:#fff;border-radius:999px;padding:4px;border:1px solid var(--line);}
+  .seg-dark button{flex:1;padding:8px 0;border:none;border-radius:999px;background:transparent;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;}
+  .seg-dark button.active{background:var(--ink);color:#fff;}
+  .nav{display:flex;align-items:center;justify-content:space-between;}
+  .nav button{width:32px;height:32px;border-radius:999px;background:#fff;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:14px;}
+  .nav .label{font-size:13px;font-weight:500;text-align:center;}
+  .hero{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;text-align:center;}
+  .hero .kicker{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:4px;}
+  .hero .amount{font-size:34px;font-weight:700;}
+  .hero .sub{font-size:11px;color:var(--faint);margin-top:2px;}
+  .hero .split{display:flex;justify-content:center;gap:28px;margin-top:12px;font-size:14px;}
+  .hero .split .lbl{font-size:11px;color:var(--faint);}
+  .bar-wrap{margin-bottom:12px;}
+  .bar-wrap:last-child{margin-bottom:0;}
+  .bar-top{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .bar-track{height:8px;border-radius:999px;background:#F1F2F4;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:999px;}
+  .card-title{font-size:14px;font-weight:600;padding:14px 16px 4px;}
+  .entry-row{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;font-size:12px;border-top:1px solid var(--line);}
+  .entry-row:first-of-type{border-top:none;}
+  .dot{width:6px;height:6px;border-radius:999px;display:inline-block;margin-right:6px;}
+  .empty{padding:0 16px 16px;font-size:12px;color:var(--faint);}
+</style>
+</head>
+<body>
+<div id="app" class="wrap"></div>
+
+<script>
+/* ---------------- constants ---------------- */
+const CLINICS = {
+  faisal: { label:"Faisal St.", cls:"faisal" },
+  mohandessin: { label:"Mohandessin", cls:"moh" }
+};
+const SERVICES = [
+  { key:"consultation", label:"Consultation", mono:"CX" },
+  { key:"ultrasound", label:"Ultrasound", mono:"US" },
+  { key:"uroflowmetry", label:"Uroflowmetry", mono:"UF" }
+];
+const DEFAULT_PRICES = {
+  faisal: { consultation:600, ultrasound:300, uroflowmetry:400 },
+  mohandessin: { consultation:300, ultrasound:250, uroflowmetry:200 }
+};
+const STORAGE_KEY = "clinicflow-data";
+
+/* ---------------- state ---------------- */
+let state = { prices: JSON.parse(JSON.stringify(DEFAULT_PRICES)), records: [] };
+try {
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+  if (saved) {
+    state.prices = { faisal: {...DEFAULT_PRICES.faisal, ...(saved.prices && saved.prices.faisal)}, mohandessin: {...DEFAULT_PRICES.mohandessin, ...(saved.prices && saved.prices.mohandessin)} };
+    state.records = Array.isArray(saved.records) ? saved.records : [];
+  }
+} catch(e) {}
+
+let ui = {
+  tab:"entry", clinic:"faisal", entryDate: toDateStr(new Date()), showPrices:false,
+  analysisClinic:"both", period:"day", refDate: new Date()
+};
+
+/* ---------------- date helpers ---------------- */
+function toDateStr(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${day}`; }
+function parseDateStr(s){ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
+function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x; }
+function weekStart(d){ const x=startOfDay(d); const day=x.getDay(); const diff=day===0?-6:1-day; x.setDate(x.getDate()+diff); return x; }
+function rangeFor(period, ref){
+  const d=new Date(ref);
+  if(period==="day") return {start:startOfDay(d), end:endOfDay(d)};
+  if(period==="week"){ const s=weekStart(d); const e=new Date(s); e.setDate(s.getDate()+6); return {start:s, end:endOfDay(e)}; }
+  if(period==="month"){ const s=new Date(d.getFullYear(),d.getMonth(),1); const e=new Date(d.getFullYear(),d.getMonth()+1,0); return {start:startOfDay(s), end:endOfDay(e)}; }
+  const s=new Date(d.getFullYear(),0,1), e=new Date(d.getFullYear(),11,31);
+  return {start:startOfDay(s), end:endOfDay(e)};
+}
+function shiftRef(period, ref, dir){
+  const d=new Date(ref);
+  if(period==="day") d.setDate(d.getDate()+dir);
+  else if(period==="week") d.setDate(d.getDate()+dir*7);
+  else if(period==="month") d.setMonth(d.getMonth()+dir);
+  else d.setFullYear(d.getFullYear()+dir);
+  return d;
+}
+function periodLabel(period, ref){
+  const {start,end} = rangeFor(period, ref);
+  const shortOpt = {month:"short", day:"numeric"};
+  if(period==="day") return start.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+  if(period==="week") return `${start.toLocaleDateString("en-US",shortOpt)} – ${end.toLocaleDateString("en-US",shortOpt)}, ${end.getFullYear()}`;
+  if(period==="month") return start.toLocaleDateString("en-US",{month:"long",year:"numeric"});
+  return String(start.getFullYear());
+}
+function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
+
+/* ---------------- data helpers ---------------- */
+function recordIncome(rec){
+  const p = state.prices[rec.clinic] || {};
+  return SERVICES.reduce((sum,s)=> sum + (rec[s.key]||0) * (p[s.key]||0), 0);
+}
+function recordExpenses(rec){ return (rec.expenses||[]).reduce((s,e)=>s+(Number(e.amount)||0),0); }
+function findRecordIndex(clinic,date){ return state.records.findIndex(r=>r.clinic===clinic && r.date===date); }
+function getRecord(clinic,date){
+  const idx = findRecordIndex(clinic,date);
+  return idx>=0 ? state.records[idx] : {clinic,date,consultation:0,ultrasound:0,uroflowmetry:0,expenses:[]};
+}
+function updateRecord(clinic,date,mutator){
+  const idx = findRecordIndex(clinic,date);
+  const base = idx>=0 ? state.records[idx] : {clinic,date,consultation:0,ultrasound:0,uroflowmetry:0,expenses:[]};
+  const next = mutator({...base, expenses:[...(base.expenses||[])]});
+  if(idx>=0) state.records[idx]=next; else state.records.push(next);
+  save();
+}
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); flashSaved(); }catch(e){}
+}
+let saveFlashTimer=null;
+function flashSaved(){
+  const tag = document.getElementById("saveTag");
+  if(!tag) return;
+  tag.textContent = "saved";
+  clearTimeout(saveFlashTimer);
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="head">
+      <div>
+        <div class="kicker">ClinicFlow</div>
+        <div class="title">Income &amp; Expenses</div>
+      </div>
+      <div class="save-tag" id="saveTag"></div>
+    </div>
+    <div class="tabs">
+      <button data-action="tab" data-value="entry" class="${ui.tab==='entry'?'active':''}">Daily Entry</button>
+      <button data-action="tab" data-value="analysis" class="${ui.tab==='analysis'?'active':''}">Analysis</button>
+    </div>
+    <div class="px">${ui.tab==='entry' ? renderEntry() : renderAnalysis()}</div>
+  `;
+}
+
+function renderEntry(){
+  const rec = getRecord(ui.clinic, ui.entryDate);
+  const prices = state.prices[ui.clinic];
+  const income = recordIncome(rec);
+  const expenseTotal = recordExpenses(rec);
+  const net = income - expenseTotal;
+  const cls = CLINICS[ui.clinic].cls;
+
+  const svcRows = SERVICES.map(s=>`
+    <div class="svc-row">
+      <div class="badge" style="background:var(--${cls}-tint);color:var(--${cls});">${s.mono}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="svc-name">${s.label}</div>
+        <div class="svc-price">${fmt(prices[s.key])} EGP each</div>
+      </div>
+      <button class="stepper-btn" data-action="inc" data-service="${s.key}" data-delta="-1">−</button>
+      <div class="qty">${rec[s.key]||0}</div>
+      <button class="stepper-btn plus" style="background:var(--${cls});" data-action="inc" data-service="${s.key}" data-delta="1">+</button>
+    </div>
+  `).join("");
+
+  const priceEdit = ui.showPrices ? `
+    <div class="price-edit">
+      ${SERVICES.map(s=>`
+        <div class="price-edit-row">
+          <span>${s.label}</span>
+          <input type="number" class="price-input" data-service="${s.key}" value="${prices[s.key]}">
+        </div>
+      `).join("")}
+    </div>` : "";
+
+  const expItems = rec.expenses.map(e=>`
+    <div class="exp-item">
+      <span class="desc">${escapeHtml(e.desc)}</span>
+      <div class="right">
+        <span class="mono">${fmt(e.amount)}</span>
+        <button class="del" data-action="remove-expense" data-id="${e.id}">✕</button>
+      </div>
+    </div>
+  `).join("");
+
+  const ticketSvc = SERVICES.filter(s=>rec[s.key]>0).map(s=>`
+    <div class="line"><span>${s.label} × ${rec[s.key]}</span><span>${fmt(rec[s.key]*prices[s.key])}</span></div>
+  `).join("");
+  const ticketExp = rec.expenses.map(e=>`
+    <div class="line neg"><span>− ${escapeHtml(e.desc)}</span><span>−${fmt(e.amount)}</span></div>
+  `).join("");
+
+  return `
+    <div class="stack">
+      <div class="row2">
+        <button class="clinic-btn ${ui.clinic==='faisal'?'active-faisal':''}" data-action="clinic" data-value="faisal">Faisal St.</button>
+        <button class="clinic-btn ${ui.clinic==='mohandessin'?'active-moh':''}" data-action="clinic" data-value="mohandessin">Mohandessin</button>
+      </div>
+      <input type="date" id="entryDateInput" value="${ui.entryDate}">
+      <div class="card">
+        ${svcRows}
+        <button class="prices-toggle" data-action="toggle-prices">${ui.showPrices?'Hide prices':'Edit prices'}</button>
+        ${priceEdit}
+      </div>
+      <div class="card card-pad">
+        <div class="card-title" style="padding:0 0 8px;">Expenses</div>
+        <div class="exp-add">
+          <input type="text" id="expDesc" placeholder="Description">
+          <input type="number" id="expAmount" placeholder="EGP">
+          <button data-action="add-expense">+</button>
+        </div>
+        ${expItems}
+      </div>
+      <div class="ticket">
+        <div class="hdr">Day Summary</div>
+        ${ticketSvc}
+        ${ticketExp}
+        <hr>
+        <div class="line"><span>Income</span><span>${fmt(income)}</span></div>
+        <div class="line" style="margin-bottom:6px;"><span>Expenses</span><span>−${fmt(expenseTotal)}</span></div>
+        <div class="net" style="color:${net>=0?'var(--good)':'var(--bad)'};"><span>NET</span><span>${fmt(net)} EGP</span></div>
+      </div>
+      <div class="tear"></div>
+    </div>
+  `;
+}
+
+function renderAnalysis(){
+  const {start,end} = rangeFor(ui.period, ui.refDate);
+  const recs = state.records.filter(r=>{
+    if(ui.analysisClinic!=='both' && r.clinic!==ui.analysisClinic) return false;
+    const d = parseDateStr(r.date);
+    return d>=start && d<=end;
+  });
+  const byService = {};
+  SERVICES.forEach(s=>{ byService[s.key]={qty:0,total:0}; });
+  let expensesTotal=0;
+  recs.forEach(r=>{
+    const p = state.prices[r.clinic];
+    SERVICES.forEach(s=>{ byService[s.key].qty += r[s.key]||0; byService[s.key].total += (r[s.key]||0)*(p[s.key]||0); });
+    expensesTotal += recordExpenses(r);
+  });
+  const incomeTotal = SERVICES.reduce((s,sv)=>s+byService[sv.key].total,0);
+  const net = incomeTotal - expensesTotal;
+  const clinicSplit = {faisal:0, mohandessin:0};
+  recs.forEach(r=>{ clinicSplit[r.clinic] += recordIncome(r) - recordExpenses(r); });
+  const maxServiceTotal = Math.max(1, ...SERVICES.map(s=>byService[s.key].total));
+  const rows = [...recs].sort((a,b)=> b.date.localeCompare(a.date) || a.clinic.localeCompare(b.clinic));
+
+  const barService = SERVICES.map(s=>{
+    const v = byService[s.key];
+    return `
+      <div class="bar-wrap">
+        <div class="bar-top"><span>${s.label} (${v.qty})</span><span class="mono">${fmt(v.total)}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(v.total/maxServiceTotal)*100}%;background:var(--faisal);"></div></div>
+      </div>
+    `;
+  }).join("");
+
+  const splitSection = ui.analysisClinic==='both' ? `
+    <div class="card card-pad">
+      <div class="card-title" style="padding:0 0 10px;">Clinic Split (net)</div>
+      ${Object.entries(CLINICS).map(([k,c])=>{
+        const v = clinicSplit[k];
+        const maxAbs = Math.max(1, Math.abs(clinicSplit.faisal), Math.abs(clinicSplit.mohandessin));
+        return `
+          <div class="bar-wrap">
+            <div class="bar-top"><span>${c.label}</span><span class="mono">${fmt(v)}</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(Math.abs(v)/maxAbs)*100}%;background:${v>=0?`var(--${c.cls})`:'var(--bad)'};"></div></div>
+          </div>
+        `;
+      }).join("")}
+    </div>` : "";
+
+  const entryRows = rows.length ? rows.map(r=>{
+    const n = recordIncome(r) - recordExpenses(r);
+    return `
+      <div class="entry-row">
+        <span><span class="dot" style="background:var(--${CLINICS[r.clinic].cls});"></span><span class="mono" style="color:var(--muted);">${r.date}</span> <span style="color:var(--faint);">${CLINICS[r.clinic].label}</span></span>
+        <span class="mono" style="font-weight:600;color:${n>=0?'var(--good)':'var(--bad)'};">${fmt(n)}</span>
+      </div>
+    `;
+  }).join("") : `<div class="empty">No entries recorded for this period yet.</div>`;
+
+  return `
+    <div class="stack">
+      <div class="row2">
+        <button class="seg-dark" style="flex:1;padding:0;" data-noop="1"></button>
+      </div>
+      <div class="row2">
+        ${['both','faisal','mohandessin'].map(k=>`
+          <button class="clinic-btn ${ui.analysisClinic===k ? (k==='both'?'active-faisal':`active-${CLINICS[k].cls}`) : ''}" data-action="analysis-clinic" data-value="${k}" style="font-size:12px;padding:9px 0;${ui.analysisClinic===k && k==='both' ? 'background:var(--ink);border-color:var(--ink);color:#fff;' : ''}">${k==='both'?'Both':CLINICS[k].label}</button>
+        `).join("")}
+      </div>
+      <div class="seg">
+        ${['day','week','month','year'].map(p=>`<button class="${ui.period===p?'active':''}" data-action="period" data-value="${p}">${p}</button>`).join("")}
+      </div>
+      <div class="nav">
+        <button data-action="nav" data-dir="-1">‹</button>
+        <div class="label">${periodLabel(ui.period, ui.refDate)}</div>
+        <button data-action="nav" data-dir="1">›</button>
+      </div>
+      <div class="hero">
+        <div class="kicker">Net Profit</div>
+        <div class="amount num" style="color:${net>=0?'var(--good)':'var(--bad)'};">${fmt(net)}</div>
+        <div class="sub">EGP · ${rows.length} day-record${rows.length===1?'':'s'}</div>
+        <div class="split">
+          <div><div class="lbl">Income</div><div class="mono" style="font-weight:600;">${fmt(incomeTotal)}</div></div>
+          <div><div class="lbl">Expenses</div><div class="mono" style="font-weight:600;color:var(--bad);">−${fmt(expensesTotal)}</div></div>
+        </div>
+      </div>
+      <div class="card card-pad">
+        <div class="card-title" style="padding:0 0 10px;">Income by Service</div>
+        ${barService}
+      </div>
+      ${splitSection}
+      <div class="card">
+        <div class="card-title">Entries</div>
+        ${entryRows}
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------------- events ---------------- */
+document.getElementById("app").addEventListener("click", e=>{
+  const btn = e.target.closest("[data-action]");
+  if(!btn) return;
+  const action = btn.dataset.action;
+  if(action==="tab"){ ui.tab = btn.dataset.value; render(); }
+  else if(action==="clinic"){ ui.clinic = btn.dataset.value; render(); }
+  else if(action==="toggle-prices"){ ui.showPrices = !ui.showPrices; render(); }
+  else if(action==="inc"){
+    const service = btn.dataset.service, delta = Number(btn.dataset.delta);
+    updateRecord(ui.clinic, ui.entryDate, rec => ({...rec, [service]: Math.max(0,(rec[service]||0)+delta)}));
+    render();
+  }
+  else if(action==="add-expense"){
+    const desc = document.getElementById("expDesc").value.trim() || "Expense";
+    const amount = Number(document.getElementById("expAmount").value);
+    if(amount>0){
+      updateRecord(ui.clinic, ui.entryDate, rec => ({...rec, expenses:[...rec.expenses, {id:Date.now(), desc, amount}]}));
+      render();
+    }
+  }
+  else if(action==="remove-expense"){
+    const id = Number(btn.dataset.id);
+    updateRecord(ui.clinic, ui.entryDate, rec => ({...rec, expenses: rec.expenses.filter(x=>x.id!==id)}));
+    render();
+  }
+  else if(action==="analysis-clinic"){ ui.analysisClinic = btn.dataset.value; render(); }
+  else if(action==="period"){ ui.period = btn.dataset.value; render(); }
+  else if(action==="nav"){ ui.refDate = shiftRef(ui.period, ui.refDate, Number(btn.dataset.dir)); render(); }
+});
+
+document.getElementById("app").addEventListener("change", e=>{
+  if(e.target.id==="entryDateInput"){ ui.entryDate = e.target.value; render(); }
+  else if(e.target.classList.contains("price-input")){
+    const service = e.target.dataset.service;
+    state.prices[ui.clinic][service] = Math.max(0, Number(e.target.value)||0);
+    save(); render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
